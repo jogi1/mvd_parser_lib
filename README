@@ -1,0 +1,18 @@
+libmvdparse:
+
+cd src
+make 
+copy the .so from the lib dir into /usr/lib or /usr/local/lib dir
+copy the .h from the lib dir into /usr/include or /usr/local/include dir
+
+php_module:
+cd php_module
+phpize
+./configure --enable_mvd_parsing
+make
+make install
+
+i never checked if make install works, i just copied the mvd_parsing.so into the php extensions folder
+
+in your php.ini
+extension=mvd_parsing.so

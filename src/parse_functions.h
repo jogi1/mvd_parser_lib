@@ -1,0 +1,10 @@
+void PF_Set_Stats(struct mvd_demo *demo, int stat, int value);
+void PF_Set_Userinfo(struct mvd_demo *demo, int user, int userid, char *userinfo);
+void PF_Update_Frags(struct mvd_demo *demo, int player, int frags);
+void PF_Update_Ping(struct mvd_demo *demo, int player, int ping);
+void PF_Update_Pl(struct mvd_demo *demo, int player, int pl);
+void PF_Update_Entertime(struct mvd_demo *demo, int player, float entertime);
+void PF_Update_Serverinfo(struct mvd_demo *demo);
+void PF_Weapon_Stats(struct mvd_demo *demo, char *string);
+int PF_Soundlist_Add(struct mvd_demo *demo, int entries);
+int PF_Soundlist_Add_Entry(struct mvd_demo *demo, char *entry);
