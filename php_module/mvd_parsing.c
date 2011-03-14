@@ -65,7 +65,10 @@ PHP_FUNCTION(mvd_parse)
 
 	array_init(return_value);
 
-	add_assoc_string(return_value, "map", demo->map_name, 1);
+	if (demo->map)
+		add_assoc_string(return_value, "map", demo->map, 1);
+	if (demo->map_name)
+		add_assoc_string(return_value, "map_name", demo->map, 1);
 	add_assoc_string(return_value, "name", demo->name, 1);
 	add_assoc_long(return_value, "frames", (double) demo->frame);
 	add_assoc_double(return_value, "time", demo->time);
@@ -76,25 +79,28 @@ PHP_FUNCTION(mvd_parse)
 	add_assoc_zval(return_value, "players", players);
 
 
-		count = 0;
-		for (i=0; i<32; i++)
-		{
-			if (demo->players[i].name)
-			{
-				ALLOC_INIT_ZVAL(current_player);
-				array_init_size(current_player, 10);
+	count = 0;
+	for (i=0; i<32; i++)
+	{
+		if (demo->players[i].name == NULL)
+			continue;
 
-				add_next_index_zval(players, current_player);
+		if (demo->players[i].name[0] == '\0')
+			continue;
 
-				p = &demo->players[i];
+		ALLOC_INIT_ZVAL(current_player);
+		array_init_size(current_player, 10);
 
-				add_assoc_string(current_player, "name", p->name, 1);
-				if (p->team)
-					add_assoc_string(current_player, "team", p->team, 1);
-				add_assoc_long(current_player, "frags", p->frags);
-				add_assoc_long(current_player, "ping", p->ping);
-				add_assoc_long(current_player, "pl", p->pl);
-			}
-		}
+		add_next_index_zval(players, current_player);
+
+		p = &demo->players[i];
+
+		add_assoc_string(current_player, "name", p->name, 1);
+		if (p->team)
+			add_assoc_string(current_player, "team", p->team, 1);
+		add_assoc_long(current_player, "frags", p->frags);
+		add_assoc_long(current_player, "ping", p->ping);
+		add_assoc_long(current_player, "pl", p->pl);
+	}
 	MVD_Destroy(demo);
 }
