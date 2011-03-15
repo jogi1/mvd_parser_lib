@@ -8,7 +8,7 @@ copy the .h from the lib dir into /usr/include or /usr/local/include dir
 php_module:
 cd php_module
 phpize
-./configure --enable_mvd_parsing
+./configure --enable-mvd_parsing
 make
 make install
 
