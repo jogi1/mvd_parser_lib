@@ -26,6 +26,7 @@ OBJS= \
 	  tokenize_string.o \
 	  events.o \
 	  stats_gather.o \
+	  fragfile.o \
 	  tools.o
 
 LIB_OBJS=$(OBS)
@@ -49,6 +50,7 @@ lib: lib_setup
 	$(MAKE) -f $(BASEDIR)/Makefile lib_compile
 	$(MAKE) -f $(BASEDIR)/Makefile lib_link
 	cp $(BASEDIR)/common.h $(BASEDIR)/$(LIB_RELEASE_DIR)/mvdparse.h
+	cat $(BASEDIR)/fragfile.h >> $(BASEDIR)/$(LIB_RELEASE_DIR)/mvdparse.h
 	cat $(BASEDIR)/mvd_parser.h >> $(BASEDIR)/$(LIB_RELEASE_DIR)/mvdparse.h
 	cat $(BASEDIR)/mvd_lib_functions.h >> $(BASEDIR)/$(LIB_RELEASE_DIR)/mvdparse.h
 

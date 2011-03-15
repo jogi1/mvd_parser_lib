@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
 	struct mvd_demo *demo;
 	struct mvd_frame *frame;
 	struct player *player;
+    struct frag_info *fi;
 	char **s;
 	int i, x;
 
@@ -42,11 +43,14 @@ int main(int argc, char *argv[])
 
 	demo = MVD_Load_From_File(argv[1]);
 
+    printf("%i\n", MVD_Load_Fragfile(demo, "fragfile.dat"));
+
 	i = MVD_Get_Stats(demo);
 
 	if (i == 1)
 	{
 		printf("something went wrong\n");
+        MVD_Destroy(demo);
 		return;
 	}
 	else if (i == 2)
@@ -99,6 +103,22 @@ int main(int argc, char *argv[])
 		printf(" rl pickups: %i\n", player->statistics->rl);
 		printf(" lg pickups: %i\n", player->statistics->lg);
 	}
+
+    // print listed frags
+    fi = demo->frags_start;
+
+    while (fi)
+    {
+        printf("%f\n", fi->time);
+        if (fi->killer)
+            printf("killer: %s\n", fi->killer->name_readable);
+        if (fi->victim)
+            printf("victim: %s\n", fi->victim->name_readable);
+        printf("weapon: %s\n", fi->wc->identifier);
+        printf("----\n");
+        fi = fi->next;
+    }
+
 
 	MVD_Destroy(demo);
 	return;

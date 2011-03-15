@@ -85,6 +85,7 @@ int Event_Add_Print(struct mvd_demo *demo, char *string)
 	if (e == NULL)
 		return 1;
 
+    e->type = EVENT_PRINT;
 	e->data = (void *) string;
 
 	return 0;

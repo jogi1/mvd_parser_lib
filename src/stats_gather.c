@@ -3,6 +3,7 @@
 #include "mvd_parser.h"
 #include "events.h"
 #include "tools.h"
+#include "fragfile.h"
 
 void Stats_Gather(struct mvd_demo *demo)
 {
@@ -11,6 +12,8 @@ void Stats_Gather(struct mvd_demo *demo)
 	struct player *p, *lp, *ljp, *jp;
 	float distance;
 	float sd = 999;
+    char *string;
+    struct frag_info fi;
 
 	int i;
 
@@ -57,9 +60,24 @@ void Stats_Gather(struct mvd_demo *demo)
 						*/
 					}
 				}
-				else if ((*l)->type == EVENT_PRINT)
-				{
-					// use this to do frag stats via a fragfile at some point
+            }
+            else if ((*l)->type == EVENT_PRINT)
+            {
+                // use this to do frag stats via a fragfile at some point
+                if (demo->fragfile)
+                {
+                    string = (char *)(*l)->data;
+                    Fragfile_Parse_Message_Store(demo, string);
+                    /*
+                    if (Fragfile_Parse_Message(demo, string, &fi) == 0)
+                    {
+                        if (fi.killer)
+                            printf("Killer: %s\n", fi.killer->name_readable);
+                        if (fi.victim)
+                            printf("Victim: %s\n", fi.victim->name_readable);
+                        printf("%s\n", fi.wc->identifier);
+                    }
+                    */
 				}
 			}
 			l++;

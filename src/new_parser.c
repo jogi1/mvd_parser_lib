@@ -36,6 +36,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "parse_functions.h"
 
+#include "fragfile.h"
+
 char *stat_string[] = {
         "STAT_HEALTH",
         "STAT_FRAGS",
@@ -232,6 +234,17 @@ void MVD_Destroy(struct mvd_demo *demo)
 	struct player *p;
 	struct mvd_frame *f, *cf;
 	char **s;
+    struct frag_info *fi, *fio;
+
+    fi = demo->frags_start;
+    while (fi)
+    {
+        fio = fi->next;
+        free(fi);
+        fi = fio;
+    }
+
+    Fragfile_Destroy(demo->fragfile);
 
 	for (i=0;i<32;i++)
 	{
@@ -721,16 +734,19 @@ static void MVD_HM_svc_print(struct mvd_demo *demo)
 	if (s[i-1] == '\n')
 	{
 		c = demo->print_buffer;
-		while (*c)
-		{
-			*c = readablechars[(unsigned char) *c];
-			c++;
-		}
 
 		if (FLAG_CHECK(demo->flags, MPF_GATHER_STATS))
 		{
 			Event_Add_Print(demo, strdup(demo->print_buffer));
 		}
+
+        /*
+		while (*c)
+		{
+			*c = readablechars[(unsigned char) *c];
+			c++;
+		}
+        */
 
 		demo->print_buffer[0] = '\0';
 
@@ -1566,6 +1582,22 @@ int MVD_Get_Stats(struct mvd_demo *demo)
 	}
 
 	return r;
+}
+
+int MVD_Load_Fragfile(struct mvd_demo *demo, char *filename)
+{
+    if (demo == NULL)
+        return 1;
+
+    if (filename == NULL)
+        return 1;
+
+    demo->fragfile = Fragfile_Load(filename);
+
+    if (demo->fragfile == NULL)
+        return 1;
+
+    return 0;
 }
 
 

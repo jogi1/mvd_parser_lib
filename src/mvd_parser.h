@@ -151,6 +151,11 @@ struct mvd_demo
 	char print_buffer[1024];
 	int print_buffer_position;
 
-};
+    struct fragfile *fragfile;
 
+    struct frag_info *frags_start;
+    struct frag_info *frags_end;
+
+
+};
 
