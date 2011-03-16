@@ -275,6 +275,9 @@ void PF_Weapon_Stats(struct mvd_demo *demo, char *string)
 	attacks = atoi(t->tokens[3]);
 	hits = atoi(t->tokens[4]);
 
+    if (demo->players[player].statistics == NULL)
+        return;
+
 	// yay
 	if (strcmp(t->tokens[2], "sg") == 0)
 	{

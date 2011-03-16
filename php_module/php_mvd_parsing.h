@@ -10,7 +10,10 @@ PHP_MINIT_FUNCTION(mvd_parsing);
 PHP_FUNCTION(mvd_parse);
 PHP_FUNCTION(mvd_load);
 PHP_FUNCTION(mvd_step);
+PHP_FUNCTION(mvd_init);
 PHP_FUNCTION(mvd_get_player_info);
+PHP_FUNCTION(mvd_get_frags);
+PHP_FUNCTION(mvd_load_fragfile);
 
 extern zend_module_entry mvd_parsing_module_entry;
 #define phpext_mvd_parsing_ptr &mvd_parsing_module_entry

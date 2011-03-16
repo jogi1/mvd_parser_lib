@@ -782,7 +782,7 @@ static void MVD_HM_svc_stufftext(struct mvd_demo *demo)
 	// mvdsv, ktx? weapon stats
 	if (strncmp("//wps", s, strlen("//wps")) == 0)
 	{
-		PF_Weapon_Stats(demo, s);
+        PF_Weapon_Stats(demo, s);
 	}
 	
 	return;
@@ -1498,6 +1498,7 @@ static int MVD_ParseData(struct mvd_demo *demo)
 	return 0;
 }
 
+// parses the demo till the end (only usefull if you want to get a scoreboard info)
 int MVD_Parse(struct mvd_demo *demo)
 {
 	int ret_val = 0;
@@ -1527,10 +1528,12 @@ int MVD_Parse(struct mvd_demo *demo)
 	return 0;
 }
 
+// steps through a single demo frame each call
 int MVD_Step(struct mvd_demo *demo)
 {
 	int ret_val = 0;
 	int i;
+    struct frag_info *fi, *fio;
 	
 	if (demo == NULL)
 		return 1;
@@ -1540,6 +1543,19 @@ int MVD_Step(struct mvd_demo *demo)
 		memcpy(&demo->players_last_frame[i], &demo->players[i], sizeof(struct player));
 		demo->players[i].flags = 0;
 	}
+
+    if (FLAG_CHECK(demo->flags, MPF_CLEAN_FRAGS_AFTER_FRAME))
+    {
+        fi = demo->frags_start;
+        while (fi)
+        {
+            fio = fi->next;
+            free(fi);
+            fi = fio;
+        }
+
+        demo->frags_start = demo->frags_end = NULL;
+    }
 
 	ret_val = MVD_ReadFrame(demo);
 
@@ -1552,9 +1568,11 @@ int MVD_Step(struct mvd_demo *demo)
 		{
 			if (demo->ended)
 				return 2;
-			
+
 			return 1;
 		}
+        if (FLAG_CHECK(demo->flags, MPF_GATHER_STATS))
+            Stats_Gather(demo);
 	}
 	else
 	{
@@ -1564,24 +1582,29 @@ int MVD_Step(struct mvd_demo *demo)
 	return 0;
 }
 
-int MVD_Get_Stats(struct mvd_demo *demo)
+int MVD_Init(struct mvd_demo *demo, int flags)
 {
-	int r;
+    if (demo == NULL)
+        return 1;
 
-	FLAG_SET(demo->flags, MPF_GATHER_STATS);
+    if (FLAG_CHECK(demo->flags, MPF_INITIATED))
+        return 1;
 
-	while ((r = MVD_Step(demo)) == 0)
-	{
-		if (demo->game_started)
-		{
-			if (!FLAG_CHECK(demo->flags, MPF_STATS_INITIALIZED))
-				if(Stats_Init(demo))
-					return 1;
-			Stats_Gather(demo);
-		}
-	}
+    demo->flags = flags;
 
-	return r;
+    if (FLAG_CHECK(demo->flags, MPF_GATHER_STATS))
+    {
+        if (Stats_Init(demo))
+        {
+            return 1;
+        }
+        FLAG_SET(demo->flags, MPF_STATS_INITIALIZED);
+    }
+
+
+    FLAG_SET(demo->flags, MPF_INITIATED);
+
+    return 0;
 }
 
 int MVD_Load_Fragfile(struct mvd_demo *demo, char *filename)

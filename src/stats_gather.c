@@ -176,15 +176,11 @@ int Stats_Init(struct mvd_demo *demo)
 
 	for (i=0; i<32; i++)
 	{
-		if (!is_player(&demo->players[i]))
-			continue;
-
 		demo->players[i].statistics = calloc(1, sizeof(struct stats));
 		if (demo->players[i].statistics == NULL)
 			return 1;
 	}
 	
-	FLAG_SET(demo->flags, MPF_STATS_INITIALIZED);
 
 	return 0;
 }

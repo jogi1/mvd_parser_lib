@@ -2,6 +2,8 @@
 
 #define MPF_GATHER_STATS (1<<0)
 #define MPF_STATS_INITIALIZED (1<<1)
+#define MPF_CLEAN_FRAGS_AFTER_FRAME (1<<2)
+#define MPF_INITIATED (1<<3)
 
 #define PFS_HEALTH (1<<0)
 #define PFS_ARMOR (1<<1)

@@ -45,36 +45,22 @@ int main(int argc, char *argv[])
 
     printf("%i\n", MVD_Load_Fragfile(demo, "fragfile.dat"));
 
-	i = MVD_Get_Stats(demo);
+    printf("%i\n", MVD_Init(demo, MPF_GATHER_STATS|MPF_CLEAN_FRAGS_AFTER_FRAME));
 
-	if (i == 1)
-	{
-		printf("something went wrong\n");
-        MVD_Destroy(demo);
-		return;
-	}
-	else if (i == 2)
-		printf("end of demo reached\n");
-
-	/*
-	s = demo->sound_list;
-
-	printf("soundlist\n");
-	while (*s)
-	{
-		printf("%s\n", *s);
-		s++;
-	}
-
-	printf("modellist\n");
-	s = demo->model_list;
-	while (*s)
-	{
-		printf("%s\n", *s);
-		s++;
-	}
-
-	*/
+    while (MVD_Step(demo) == 0)
+    {
+        fi = demo->frags_start;
+        while (fi)
+        {
+            if (fi->killer)
+                printf("killer: %s [%f %f %f]\n", fi->killer->name_readable, fi->killer->origin[0], fi->killer->origin[1], fi->killer->origin[2]);
+            if (fi->victim)
+                printf("victim: %s [%f %f %f]\n", fi->victim->name_readable, fi->victim->origin[0], fi->victim->origin[1], fi->victim->origin[2]);
+            printf("weapon: %s\n", fi->wc->identifier);
+            printf("----\n");
+            fi = fi->next;
+        }
+    }
 
 	for (i=0; i<32; i++)
 	{
@@ -103,6 +89,12 @@ int main(int argc, char *argv[])
 		printf(" rl pickups: %i\n", player->statistics->rl);
 		printf(" lg pickups: %i\n", player->statistics->lg);
 	}
+
+    printf("%i\n", demo->frame);
+
+    MVD_Destroy(demo);
+
+    return;
 
     // print listed frags
     fi = demo->frags_start;

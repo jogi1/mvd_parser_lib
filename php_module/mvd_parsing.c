@@ -13,6 +13,9 @@ static function_entry mvd_parse_functions[] = {
     PHP_FE(mvd_step, NULL)
     PHP_FE(mvd_load, NULL)
     PHP_FE(mvd_get_player_info, NULL)
+    PHP_FE(mvd_init, NULL)
+    PHP_FE(mvd_get_frags, NULL)
+    PHP_FE(mvd_load_fragfile, NULL)
     {NULL, NULL, NULL}
 };
 
@@ -142,6 +145,48 @@ PHP_FUNCTION(mvd_load)
 	ZEND_REGISTER_RESOURCE(return_value, demo, demo_resource_handler_id);
 }
 
+PHP_FUNCTION(mvd_init)
+{
+	struct mvd_demo *demo;
+	zval *zdemo;
+    int flags;
+	int retval;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zdemo) == FAILURE)
+	{
+		RETURN_NULL();
+	}
+
+	ZEND_FETCH_RESOURCE(demo, struct mvd_demo *, &zdemo, -1, demo_resource_name, demo_resource_handler_id);
+
+    retval = MVD_Init(demo, MPF_GATHER_STATS|MPF_CLEAN_FRAGS_AFTER_FRAME);
+
+    RETURN_LONG(retval);
+}
+
+PHP_FUNCTION(mvd_load_fragfile)
+{
+	struct mvd_demo *demo;
+	zval *zdemo;
+    char *fragfile;
+    int fragfile_len;
+    int flags;
+	int retval;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs", &zdemo, &fragfile, &fragfile_len) == FAILURE)
+	{
+		RETURN_NULL();
+	}
+
+	ZEND_FETCH_RESOURCE(demo, struct mvd_demo *, &zdemo, -1, demo_resource_name, demo_resource_handler_id);
+
+    retval = MVD_Load_Fragfile(demo, fragfile);
+
+    RETURN_LONG(retval);
+}
+
+
+
 PHP_FUNCTION(mvd_step)
 {
 	struct mvd_demo *demo;
@@ -218,6 +263,75 @@ PHP_FUNCTION(mvd_get_player_info)
 		add_assoc_long(current_player, "pl", p->pl);
 	}
 	return;
+}
+
+PHP_FUNCTION(mvd_get_frags)
+{
+	struct mvd_demo *demo;
+	zval *zdemo;
+	int retval;
+	zval *current_kill;
+	int i, count;
+	struct player *p;
+    struct frag_info *fi;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &zdemo) == FAILURE)
+	{
+		RETURN_NULL();
+	}
+
+	ZEND_FETCH_RESOURCE(demo, struct mvd_demo *, &zdemo, -1, demo_resource_name, demo_resource_handler_id);
+
+	array_init(return_value);
+
+    fi = demo->frags_start;
+
+    count = 0;
+
+    while (fi)
+    {
+        count++;
+        fi = fi->next;
+    }
+
+    array_init_size(return_value, count);
+
+    fi = demo->frags_start;
+
+ //   php_printf("\"%i\".\n", count);
+    while (fi)
+    {
+
+        ALLOC_INIT_ZVAL(current_kill);
+        array_init_size(current_kill, 10);
+
+		add_next_index_zval(return_value, current_kill);
+
+        add_assoc_double(current_kill, "time", fi->time);
+
+        if (fi->killer)
+        {
+            add_assoc_string(current_kill , "killer_name", fi->killer->name, 1);
+            add_assoc_string(current_kill , "killer_name_readable", fi->killer->name_readable, 1);
+        }
+
+        if (fi->victim)
+        {
+            add_assoc_string(current_kill , "victim_name", fi->victim->name, 1);
+            add_assoc_string(current_kill , "victim_name_readable", fi->victim->name_readable, 1);
+        }
+
+        add_assoc_string(current_kill, "weapon_identifier", fi->wc->identifier, 1);
+        add_assoc_string(current_kill, "weapon_long_name", fi->wc->long_name, 1);
+        if (fi->wc->short_name)
+            add_assoc_string(current_kill, "weapon_short_name", fi->wc->short_name, 1);
+        if (fi->wc->image_name)
+            add_assoc_string(current_kill, "weapon_image_name", fi->wc->image_name, 1);
+
+        fi = fi->next;
+    }
+
+    return;
 }
 
 

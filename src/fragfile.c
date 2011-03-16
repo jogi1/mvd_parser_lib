@@ -595,6 +595,7 @@ int Fragfile_Parse_Message_Store(struct mvd_demo *demo, char *message)
         demo->frags_end->next = fi;
         demo->frags_end = fi;
     }
+
     return 0;
 }
 
