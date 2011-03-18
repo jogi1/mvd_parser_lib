@@ -1,20 +1,19 @@
-enum frag_msg_type
-{
-    fmt_death,
-    fmt_suicide,
-    fmt_teamkilled_unknown,
-    fmt_teamkills_unknown,
-    fmt_x_fragged_by_y,
-    fmt_x_frags_y,
-    fmt_x_teamkills_y,
-    fmt_x_teamkilled_by_y
-
-};
+#define FT_VICTIM_ONLY (1<<0)
+#define FT_KILLER_ONLY (1<<1)
+#define FT_KILLER_VICTIM (1<<2)
+#define FT_VICTIM_KILLER (1<<3)
 
 struct found_players
 {
     struct player *player;
     char *start, *end;
+};
+
+struct frag_type
+{
+    char *identifier;
+    char *name;
+    int flags;
 };
 
 struct weapon_class
@@ -27,7 +26,7 @@ struct weapon_class
 
 struct obituary
 {
-    enum frag_msg_type type;
+    struct frag_type *ft;
     struct weapon_class *wc;
     char *msg1;
     char *msg2;
@@ -50,12 +49,14 @@ struct fragfile
     char *email;
     char *webpage;
 
+    struct frag_type **frag_type;
+    int frag_type_count;
+
     struct weapon_class **weapon_class;
     int weapon_class_count;
 
     struct obituary **obituary;
     int obituary_count;
-
 };
 
 struct fragfile *Fragfile_Load(char *filename);

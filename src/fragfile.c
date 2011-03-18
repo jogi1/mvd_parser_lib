@@ -26,24 +26,91 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "mvd_parser.h"
 #include "tokenize_string.h"
 #include "fragfile.h"
+#include "tools.h"
 
-
-struct frag_msg_type_string
+static struct frag_type *find_frag_type(struct fragfile *ff, char *identifier)
 {
-    enum frag_msg_type type;
-    char *string;
-};
+    int i;
 
-struct frag_msg_type_string frag_msg_type_string[] = {
-    {fmt_death, "PLAYER_DEATH"},
-    {fmt_suicide, "PLAYER_SUICIDE"},
-    {fmt_teamkilled_unknown, "X_TEAMKILLED_UNKNOWN"},
-    {fmt_teamkills_unknown, "X_TEAMKILLS_UNKNOWN"},
-    {fmt_x_fragged_by_y, "X_FRAGGED_BY_Y"},
-    {fmt_x_frags_y, "X_FRAGS_Y"},
-    {fmt_x_teamkills_y, "X_TEAMKILLS_Y"},
-    {fmt_x_teamkilled_by_y, "X_TEAMKILLED_BY_Y"},
-};
+    if (ff == NULL)
+        return NULL;
+
+    if (identifier == NULL)
+        return NULL;
+
+    for (i=0; i<ff->frag_type_count; i++)
+        if (strncmp(ff->frag_type[i]->identifier, identifier, strlen(identifier)) == 0)
+            return ff->frag_type[i];
+
+    return NULL;
+}
+
+static int add_frag_type(struct fragfile *ff, char *identifier, char *name, int flags)
+{
+    struct frag_type *ft, **nftl, **oftl;
+    int i;
+
+    if (ff == NULL)
+        return 1;
+
+    if (identifier == NULL)
+        return 1;
+
+    if (name == NULL)
+        return 1;
+
+    ft = find_frag_type(ff, identifier);
+
+    if (ft != NULL)
+        return 1;
+
+    ft = calloc(1, sizeof(struct frag_type));
+
+    if (ft == NULL)
+        return 1;
+
+    ft->identifier = strdup(identifier);
+    if (ft->identifier == NULL)
+    {
+        free(ft);
+        return 1;
+    }
+
+    ft->name = strdup(name);
+    if (ft->name == NULL)
+    {
+        free(ft->identifier);
+        free(ft);
+        return 1;
+    }
+
+    ft->flags = flags;
+
+    nftl = calloc(ff->frag_type_count + 2, sizeof(struct frag_type **));
+
+    if (nftl == NULL)
+    {
+        free(ft->identifier);
+        free(ft->name);
+        free(ft);
+        return 1;
+    }
+
+    oftl = ff->frag_type;
+
+    for (i=0; i<ff->frag_type_count; i++)
+        nftl[i] = oftl[i];
+
+    nftl[i] = ft;
+
+    free(ff->frag_type);
+
+    ff->frag_type = nftl;
+
+    ff->frag_type_count++;
+
+	return 0;
+}
 
 static int add_weapon_class(struct fragfile *ff, char *identifier, char *long_name, char *short_name, char *image_name)
 {
@@ -107,6 +174,8 @@ static int add_weapon_class(struct fragfile *ff, char *identifier, char *long_na
         free(c->long_name);
         free(c->short_name);
         free(c->image_name);
+        free(c);
+        return 1;
     }
 
     ocl = ff->weapon_class;
@@ -125,12 +194,15 @@ static int add_weapon_class(struct fragfile *ff, char *identifier, char *long_na
 	return 0;
 }
 
-static int register_obituary(struct fragfile *ff, enum frag_msg_type type, struct weapon_class *wc, char *msg1, char *msg2)
+static int register_obituary(struct fragfile *ff, struct frag_type *frag_type, struct weapon_class *wc, char *msg1, char *msg2)
 {
     struct obituary *o, **nol;
     int i;
 
     if (ff == NULL)
+        return 1;
+
+    if (frag_type == NULL)
         return 1;
 
     if (wc == NULL)
@@ -145,7 +217,7 @@ static int register_obituary(struct fragfile *ff, enum frag_msg_type type, struc
         return 1;
 
 
-    o->type = type;
+    o->ft = frag_type;
     o->wc = wc;
 
     o->msg1 = strdup(msg1);
@@ -191,25 +263,6 @@ static int register_obituary(struct fragfile *ff, enum frag_msg_type type, struc
     return 0;
 }
 
-static int get_frag_message_type(char *s, enum frag_msg_type *frag_msg_type)
-{
-    int i;
-
-    if (s == NULL)
-        return 1;
-    if (frag_msg_type == NULL)
-        return 1;
-
-    for (i=0; i<sizeof(frag_msg_type_string)/sizeof(struct frag_msg_type_string);i++)
-        if (strcasecmp(s, frag_msg_type_string[i].string) == 0)
-        {
-            *frag_msg_type = frag_msg_type_string[i].type;
-            return 0;
-        }
-
-    return 1;
-}
-
 static int get_weapon_class(struct fragfile *ff, char *identifier, struct weapon_class **wc)
 {
     int i;
@@ -237,11 +290,11 @@ struct fragfile *Fragfile_Load(char *filename)
     FILE *f;
     struct tokenized_string *ts;
     struct fragfile *ff;
+    struct frag_type *frag_type;
     char line[1024];
     int x, y;
     char *rcode;
     int abort = 0;
-    enum frag_msg_type fmsg_type;
     struct weapon_class *wc;
 
     if (filename == NULL)
@@ -313,6 +366,66 @@ struct fragfile *Fragfile_Load(char *filename)
         // definition
         if (strncmp(ts->tokens[0], "#DEFINE", 7) == 0)
         {
+            // frag type
+            if (strncmp(ts->tokens[1], "FRAG_TYPE", 9) == 0)
+            {
+                if (ts->count < 5)
+                {
+                    abort = 1;
+                    break;
+                }
+                else if (ts->count == 5)
+                {
+                    if (strcmp(ts->tokens[4], "VICTIM") == 0)
+                    {
+                        if (add_frag_type(ff, ts->tokens[2], ts->tokens[3], FT_VICTIM_ONLY))
+                        {
+                            abort = 1;
+                            break;
+                        }
+                    }
+                    else if (strcmp(ts->tokens[4], "KILLER") == 0)
+                    {
+                        if (add_frag_type(ff, ts->tokens[2], ts->tokens[3], FT_KILLER_ONLY))
+                        {
+                            abort = 1;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        abort = 1;
+                        break;
+                    }
+                }
+                else if (ts->count == 6)
+                {
+                    if ((strcmp(ts->tokens[4], "VICTIM") == 0) && strcmp(ts->tokens[5], "KILLER") == 0)
+                    {
+                        if (add_frag_type(ff, ts->tokens[2], ts->tokens[3], FT_VICTIM_KILLER))
+                        {
+                            abort = 1;
+                            break;
+                        }
+                    }
+                    else if ((strcmp(ts->tokens[4], "KILLER") == 0) && strcmp(ts->tokens[5], "VICTIM") == 0)
+                    {
+                        if (add_frag_type(ff, ts->tokens[2], ts->tokens[3], FT_KILLER_VICTIM))
+                        {
+                            abort = 1;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        for (x=0; x<ts->count; x++)
+                            printf("\"%s\"\n", ts->tokens[x]);
+                        abort = 1;
+                        break;
+                    }
+                }
+            }
+
             // weapon class
             if (strncmp(ts->tokens[1], "WEAPON_CLASS", 12) == 0)
             {
@@ -333,7 +446,7 @@ struct fragfile *Fragfile_Load(char *filename)
             {
                 if (ts->count >= 4)
                 {
-                    if (get_frag_message_type(ts->tokens[2], &fmsg_type))
+                    if ((frag_type = find_frag_type(ff, ts->tokens[2])) == NULL)
                     {
                         abort = 1;
                     }
@@ -344,9 +457,9 @@ struct fragfile *Fragfile_Load(char *filename)
                     }
 
                     if (ts->count == 5)
-                        register_obituary(ff, fmsg_type, wc, ts->tokens[4], NULL);
+                        register_obituary(ff, frag_type, wc, ts->tokens[4], NULL);
                     else if (ts->count == 6)
-                        register_obituary(ff, fmsg_type, wc, ts->tokens[4], ts->tokens[5]);
+                        register_obituary(ff, frag_type, wc, ts->tokens[4], ts->tokens[5]);
                 }
             }
         }
@@ -412,46 +525,37 @@ static void sort_players(struct found_players *players)
     }
 }
 
-static void setup_frag_info(struct frag_info *fi, enum frag_msg_type type, struct found_players *found_players, struct weapon_class *wc)
+static void setup_frag_info(struct frag_info *fi, struct frag_type *frag_type, struct found_players *found_players, struct weapon_class *wc)
 {
     if (fi == NULL)
         return;
     if (found_players == NULL)
         return;
+    if (frag_type == NULL)
+        return;
     if (wc == NULL)
         return;
 
     fi->wc = wc;
+    fi->victim = fi->killer = NULL;
 
-    if (type == fmt_x_teamkilled_by_y || type == fmt_x_fragged_by_y)
+    if (FLAG_CHECK(frag_type->flags, FT_VICTIM_ONLY))
     {
+        fi->victim = found_players[0].player;
+    }
+    else if (FLAG_CHECK(frag_type->flags, FT_KILLER_ONLY))
+    {
+        fi->killer = found_players[0].player;
+    }
+    else if (FLAG_CHECK(frag_type->flags, FT_VICTIM_KILLER))
+    {
+        fi->victim = found_players[0].player;
         fi->killer = found_players[1].player;
-        fi->victim= found_players[0].player;
     }
-    else if (type == fmt_x_frags_y || type == fmt_x_teamkills_y)
+    else if (FLAG_CHECK(frag_type->flags, FT_KILLER_VICTIM))
     {
-        fi->killer = found_players[0].player;
         fi->victim = found_players[1].player;
-    }
-    else if (type == fmt_death)
-    {
-        fi->killer = NULL;
-        fi->victim = found_players[0].player;
-    }
-    else if (type == fmt_suicide)
-    {
         fi->killer = found_players[0].player;
-        fi->victim = found_players[0].player;
-    }
-    else if (type == fmt_teamkills_unknown)
-    {
-        fi->killer = found_players[0].player;
-        fi->victim = NULL;
-    }
-    else if (type == fmt_teamkilled_unknown)
-    {
-        fi->victim = found_players[0].player;
-        fi->killer = NULL;
     }
 }
 
@@ -472,19 +576,13 @@ static int find_obituary(struct fragfile *ff, int player_count, int msg_count, c
 
         if (player_count == 1)
         {
-            if (    o->type == fmt_x_teamkilled_by_y || 
-                    o->type == fmt_x_teamkills_y ||
-                    o->type == fmt_x_fragged_by_y ||
-                    o->type == fmt_x_frags_y)
+            if (FLAG_CHECK(o->ft->flags, FT_VICTIM_KILLER) || FLAG_CHECK(o->ft->flags, FT_KILLER_VICTIM))
                 continue;
         }
 
         if (player_count == 2)
         {
-            if (    o->type == fmt_death|| 
-                    o->type == fmt_suicide||
-                    o->type == fmt_teamkilled_unknown||
-                    o->type == fmt_teamkills_unknown)
+            if (FLAG_CHECK(o->ft->flags, FT_VICTIM_ONLY) || FLAG_CHECK(o->ft->flags, FT_KILLER_ONLY))
                 continue;
         }
 
@@ -492,7 +590,7 @@ static int find_obituary(struct fragfile *ff, int player_count, int msg_count, c
         {
             if (strcmp(o->msg1, msg1) == 0)
             {
-                setup_frag_info(ft, o->type, found_players, o->wc);
+                setup_frag_info(ft, o->ft, found_players, o->wc);
                 return 0;
             }
         }
@@ -503,7 +601,7 @@ static int find_obituary(struct fragfile *ff, int player_count, int msg_count, c
 
             if ((strcmp(o->msg1, msg1) == 0 ) && (strcmp(o->msg2, msg2) == 0))
             {
-                setup_frag_info(ft, o->type, found_players, o->wc);
+                setup_frag_info(ft, o->ft, found_players, o->wc);
                 return 0;
             }
         }
@@ -635,6 +733,6 @@ void Fragfile_Destroy(struct fragfile *ff)
 
     free(ff);
 
-    return 0;
+    return;
 }
 
