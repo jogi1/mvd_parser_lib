@@ -65,7 +65,7 @@ int Event_Add_Sound(struct mvd_demo *demo, vec3_t origin, int sound)
 	s->origin[1] = origin[1];
 	s->origin[2] = origin[2];
 
-	s->sound = sound;
+	s->sound = sound - 1;
 
 	return 0;
 }
