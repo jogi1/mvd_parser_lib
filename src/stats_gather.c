@@ -12,8 +12,8 @@ void Stats_Gather(struct mvd_demo *demo)
 	struct player *p, *lp, *ljp, *jp;
 	float distance;
 	float sd = 999;
-    char *string;
-    struct frag_info fi;
+	char *string;
+	struct frag_info fi;
 
 	int i;
 
@@ -180,7 +180,6 @@ int Stats_Init(struct mvd_demo *demo)
 		if (demo->players[i].statistics == NULL)
 			return 1;
 	}
-	
 
 	return 0;
 }

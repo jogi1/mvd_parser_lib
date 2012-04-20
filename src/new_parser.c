@@ -234,22 +234,23 @@ void MVD_Destroy(struct mvd_demo *demo)
 	struct player *p;
 	struct mvd_frame *f, *cf;
 	char **s;
-    struct frag_info *fi, *fio;
+	struct frag_info *fi, *fio;
 
-    fi = demo->frags_start;
-    while (fi)
-    {
-        fio = fi->next;
-        free(fi);
-        fi = fio;
-    }
+	fi = demo->frags_start;
+	while (fi)
+	{
+		fio = fi->next;
+		free(fi);
+		fi = fio;
+	}
 
-    Fragfile_Destroy(demo->fragfile);
+	Fragfile_Destroy(demo->fragfile);
 
 	for (i=0;i<32;i++)
 	{
 		p = &demo->players[i];
 
+		free(p->statistics);
 		if (p->name == NULL)
 			continue;
 
@@ -258,7 +259,6 @@ void MVD_Destroy(struct mvd_demo *demo)
 		free(p->team);
 		free(p->team_readable);
 		free(p->userinfo);
-		free(p->statistics);
 	}
 
 	/*
