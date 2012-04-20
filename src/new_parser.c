@@ -250,15 +250,12 @@ void MVD_Destroy(struct mvd_demo *demo)
 	{
 		p = &demo->players[i];
 
-		free(p->statistics);
-		if (p->name == NULL)
-			continue;
-
 		free(p->name);
 		free(p->name_readable);
 		free(p->team);
 		free(p->team_readable);
 		free(p->userinfo);
+		free(p->statistics);
 	}
 
 	/*

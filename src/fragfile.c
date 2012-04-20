@@ -729,7 +729,16 @@ void Fragfile_Destroy(struct fragfile *ff)
         free(ff->obituary[i]);
     }
 
+	for (i=0; i<ff->frag_type_count; i++)
+	{
+		free(ff->frag_type[i]->identifier);
+		free(ff->frag_type[i]->name);
+		free(ff->frag_type[i]);
+	}
+	free(ff->frag_type);
+
     free(ff->obituary);
+
 
     free(ff);
 
