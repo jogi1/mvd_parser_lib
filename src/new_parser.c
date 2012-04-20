@@ -298,7 +298,6 @@ void MVD_Destroy(struct mvd_demo *demo)
 	free(demo->hostname_readable);
 
 	free(demo->map);
-
 	free(demo->map_name);
 	free(demo->name);
 	free(demo->buf);
@@ -806,7 +805,9 @@ static void MVD_HM_svc_serverdata(struct mvd_demo *demo)
 	MVD_MSG_ReadLong(demo);	// servercount
 	MVD_MSG_ReadString(demo);	// gamedir
 	MVD_MSG_ReadFloat(demo);	// demotime
-	strdup(MVD_MSG_ReadString(demo));	// levelname 
+	if (demo->map_name)
+		free(demo->map_name);
+	demo->map_name = strdup(MVD_MSG_ReadString(demo));	// levelname 
 	for (i = 0; i < 10; i++)
 		MVD_MSG_ReadFloat(demo);	// movevar 
 	return;
@@ -1020,16 +1021,16 @@ static void MVD_HM_svc_serverinfo(struct mvd_demo *demo)
 
 	if (strcmp(key, "map") == 0)
 	{
-		if (demo->map_name)
-			free(demo->map_name);
-		demo->map_name = value;
+		if (demo->map)
+			free(demo->map);
+		demo->map = value;
 		delete_value = 0;
 	}
 
 	if (strcmp(key, "hostname") == 0)
 	{
 		if (demo->hostname)
-			free(demo->map_name);
+			free(demo->hostname);
 		demo->hostname = value;
 
 		if (demo->hostname_readable)
