@@ -469,6 +469,7 @@ struct fragfile *Fragfile_Load(char *filename)
     if (abort)
     {
         Fragfile_Destroy(ff);
+		fclose(f);
         return NULL;
     }
 
