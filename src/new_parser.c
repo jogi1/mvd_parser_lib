@@ -505,7 +505,7 @@ static int MVD_MSG_ReadShort(struct mvd_demo *demo)
 {
 	int i;
 
-	unsigned char s;
+	char s;
 
 	MVD_MSG_Read(demo, &s, sizeof(unsigned char));
 	i = s;
