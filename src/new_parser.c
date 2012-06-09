@@ -236,6 +236,18 @@ void MVD_Destroy(struct mvd_demo *demo)
 	char **s;
 	struct frag_info *fi, *fio;
 
+	struct event *e;
+
+	for (i=0; i<demo->event_count; i++)
+	{
+		e = demo->event[i];
+
+		free(e->data);
+		free(e);
+	}
+
+	free(demo->event);
+
 	fi = demo->frags_start;
 	while (fi)
 	{
