@@ -4,6 +4,7 @@
 #define MPF_STATS_INITIALIZED (1<<1)
 #define MPF_CLEAN_FRAGS_AFTER_FRAME (1<<2)
 #define MPF_INITIATED (1<<3)
+#define MPF_DEBUG (1<<4)
 
 #define PFS_HEALTH (1<<0)
 #define PFS_ARMOR (1<<1)
@@ -157,5 +158,7 @@ struct mvd_demo
 
 	struct frag_info *frags_start;
 	struct frag_info *frags_end;
+
+	void (*debug_print)(const char *fmt, ...);
 };
 

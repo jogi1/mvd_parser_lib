@@ -20,11 +20,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include "mvdparse.h"
 
 float calc_acc(int attacks, int hits)
 {
 	return attacks ? 100.0f * hits / attacks : 0;
+}
+
+void my_vprintf(const char *fmt, va_list argptr)
+{
+	vprintf(fmt, argptr);
 }
 
 int main(int argc, char *argv[])
@@ -43,11 +50,13 @@ int main(int argc, char *argv[])
 
 	demo = MVD_Load_From_File(argv[1]);
 
-    printf("%i\n", MVD_Load_Fragfile(demo, "fragfile.dat"));
+	printf("%i\n", MVD_Load_Fragfile(demo, "fragfile.dat"));
 
-    printf("%i\n", MVD_Init(demo, MPF_GATHER_STATS|MPF_CLEAN_FRAGS_AFTER_FRAME));
+	printf("%i\n", MVD_Init(demo, MPF_GATHER_STATS|MPF_CLEAN_FRAGS_AFTER_FRAME|MPF_DEBUG));
 
-    while (MVD_Step(demo) == 0)
+//	demo->debug_print = my_vprintf;
+
+    while ((i = MVD_Step(demo)) == 0)
     {
         fi = demo->frags_start;
         while (fi)
@@ -61,7 +70,10 @@ int main(int argc, char *argv[])
             fi = fi->next;
         }
     }
+	printf("end %i\n", i);
+	printf("frame %i\n", demo->frame);
 
+	exit(1);
 	for (i=0; i<32; i++)
 	{
 		if (demo->players[i].name == NULL)

@@ -181,6 +181,21 @@ static struct mvd_frame *MVD_Frame_Add(struct mvd_demo *demo)
 }
 */
 
+void MVD_DebugPrint(struct mvd_demo *demo, const char *fmt, ...)
+{
+	va_list argptr;
+
+	if (demo == NULL)
+		return;
+
+	if (demo->debug_print == NULL)
+		return;
+
+	va_start(argptr, fmt);
+	demo->debug_print(fmt, argptr);
+	va_end(argptr);
+}
+
 static char *ReadFile(char *name, int *length)
 {
 	FILE *f;
@@ -379,21 +394,19 @@ static int MVD_Read(struct mvd_demo *demo, void *buf, unsigned int size)
 static int MVD_ReadFrame(struct mvd_demo *demo)
 {
 	unsigned char c;
-
 	int current_size;
-
 	int i;
 
+	MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: start.\n", demo->frame);
 	MVD_MSG_BeginReading(demo);
-
-	//MVD_Frame_Add(demo);
 
 	demo->frame++;
 
-      readnext:
+readnext:
 
 	if (MVD_Read(demo, &c, sizeof(c)))
 	{
+		MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: time read failed.\n", demo->frame);
 		return 2;
 	}
 
@@ -401,6 +414,7 @@ static int MVD_ReadFrame(struct mvd_demo *demo)
 
 	if (MVD_Read(demo, &c, sizeof(c)))
 	{
+		MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: cmd read failed.\n", demo->frame);
 		return 1;
 	}
 
@@ -415,6 +429,7 @@ static int MVD_ReadFrame(struct mvd_demo *demo)
 		      readit:
 			if (MVD_Read(demo, &current_size, 4))
 			{
+				MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: current_size read failed.\n", demo->frame);
 				return 1;
 			}
 
@@ -441,11 +456,13 @@ static int MVD_ReadFrame(struct mvd_demo *demo)
 		case dem_set:
 			if (MVD_Read(demo, &i, sizeof(i)))
 			{
+				MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: reading outgoing_sequence failed.\n", demo->frame);
 				return 1;
 			}
 			demo->outgoing_sequence = LittleLong(i);
 			if (MVD_Read(demo, &i, sizeof(i)))
 			{
+				MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: reading incoming_sequence failed.\n", demo->frame);
 				return 1;
 			}
 			demo->incoming_sequence = LittleLong(i);
@@ -454,6 +471,7 @@ static int MVD_ReadFrame(struct mvd_demo *demo)
 		case dem_multiple:
 			if (MVD_Read(demo, &i, sizeof(i)))
 			{
+				MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: reading last_to failed.\n", demo->frame);
 				return 1;
 			}
 			demo->last_to = LittleLong(i);
@@ -476,8 +494,10 @@ static int MVD_ReadFrame(struct mvd_demo *demo)
 			goto readit;
 
 		default:
+			MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: reached default... not good '%i' .\n", demo->frame, c & 7);
 			return 1;
 	}
+	MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ReadFrame: end.\n", demo->frame);
 	return 0;
 }
 
@@ -516,13 +536,11 @@ static char MVD_MSG_ReadChar(struct mvd_demo *demo)
 static int MVD_MSG_ReadShort(struct mvd_demo *demo)
 {
 	int i;
-
-	char s;
+	unsigned char s, t;
 
 	MVD_MSG_Read(demo, &s, sizeof(unsigned char));
-	i = s;
-	MVD_MSG_Read(demo, &s, sizeof(unsigned char));
-	i += s << 8;
+	MVD_MSG_Read(demo, &t, sizeof(unsigned char));
+	i = (short)(s + (t << 8));
 	return i;
 }
 
@@ -712,17 +730,20 @@ static int MVD_TranslateFlags(int src)
 
 static void MVD_HM_svc_nop(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_nop.\n");
 	return;
 }
 
 static void MVD_HM_svc_disconnect(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_disconnect.\n");
 	demo->ended = 1;
 	return;
 }
 
 static void MVD_HM_nq_svc_time(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_nq_svc_time.\n");
 	MVD_MSG_ReadFloat(demo);
 	return;
 }
@@ -732,6 +753,7 @@ static void MVD_HM_svc_print(struct mvd_demo *demo)
 	char *s, *c;
 	int i;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_print.\n");
 	MVD_MSG_ReadByte(demo);
 	s = MVD_MSG_ReadString(demo);
 
@@ -770,6 +792,7 @@ static void MVD_HM_svc_print(struct mvd_demo *demo)
 
 static void MVD_HM_svc_centerprint(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_centerprint.\n");
 	MVD_MSG_ReadString(demo);
 	return;
 }
@@ -777,6 +800,8 @@ static void MVD_HM_svc_centerprint(struct mvd_demo *demo)
 static void MVD_HM_svc_stufftext(struct mvd_demo *demo)
 {
 	char *s;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_stufftext.\n");
 
 	s = MVD_MSG_ReadString(demo);
 
@@ -798,6 +823,8 @@ static void MVD_HM_svc_stufftext(struct mvd_demo *demo)
 
 static void MVD_HM_svc_damage(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_damage.\n");
+
 	MVD_MSG_ReadByte(demo);	// armor
 	MVD_MSG_ReadByte(demo);	// blood
 	MVD_MSG_ReadCoord(demo);
@@ -809,6 +836,8 @@ static void MVD_HM_svc_damage(struct mvd_demo *demo)
 static void MVD_HM_svc_serverdata(struct mvd_demo *demo)
 {
 	int i;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_serverdata.\n");
 
 	MVD_MSG_ReadLong(demo);	// protoversion
 	MVD_MSG_ReadLong(demo);	// servercount
@@ -824,6 +853,7 @@ static void MVD_HM_svc_serverdata(struct mvd_demo *demo)
 
 static void MVD_HM_svc_cdtrack(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_cdtrack.\n");
 	MVD_MSG_ReadByte(demo);
 	return;
 }
@@ -831,9 +861,9 @@ static void MVD_HM_svc_cdtrack(struct mvd_demo *demo)
 static void MVD_HM_svc_playerinfo(struct mvd_demo *demo)
 {
 	int flags, iflags, num;
-
 	int i;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_playerinfo.\n");
 
 	num = MVD_MSG_ReadByte(demo);	// number
 	flags = MVD_MSG_ReadShort(demo);	//flags
@@ -865,6 +895,8 @@ static void MVD_HM_svc_modellist(struct mvd_demo *demo)
 {
 	char *s;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_modellist.\n");
+
 	MVD_MSG_ReadByte(demo);
 	while (1)
 	{
@@ -892,6 +924,8 @@ static void MVD_HM_svc_soundlist(struct mvd_demo *demo)
 	char *s;
 	int c;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_soundlist.\n");
+
 	MVD_MSG_ReadByte(demo);
 
 	while (1)
@@ -918,6 +952,8 @@ static void MVD_HM_svc_soundlist(struct mvd_demo *demo)
 
 static void MVD_HM_svc_spawnstaticsound(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_spawnstaticsound.\n");
+
 	MVD_MSG_ReadCoord(demo);
 	MVD_MSG_ReadCoord(demo);
 	MVD_MSG_ReadCoord(demo);
@@ -929,6 +965,8 @@ static void MVD_HM_svc_spawnstaticsound(struct mvd_demo *demo)
 
 static void MVD_HM_svc_spawnbaseline(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_spawnbaseline.\n");
+
 	MVD_MSG_ReadShort(demo);	// entity
 	MVD_MSG_ReadByte(demo);	// modelindex
 	MVD_MSG_ReadByte(demo);	// frame
@@ -951,6 +989,8 @@ static void MVD_HM_svc_updatefrags(struct mvd_demo *demo)
 {
 	int player, frags;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_updatefrags.\n");
+
 	player = MVD_MSG_ReadByte(demo);	// num
 	frags = MVD_MSG_ReadShort(demo);	// frags
 
@@ -963,6 +1003,8 @@ static void MVD_HM_svc_updateping(struct mvd_demo *demo)
 {
 	int player, ping;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_updateping.\n");
+
 	player = MVD_MSG_ReadByte(demo);	// num
 	ping = MVD_MSG_ReadShort(demo);	// ping
 
@@ -973,6 +1015,8 @@ static void MVD_HM_svc_updateping(struct mvd_demo *demo)
 static void MVD_HM_svc_updatepl(struct mvd_demo *demo)
 {
 	int player, pl;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_updatepl.\n");
 
 	player = MVD_MSG_ReadByte(demo);	// num
 	pl = MVD_MSG_ReadByte(demo);	// pl
@@ -985,7 +1029,9 @@ static void MVD_HM_svc_updateentertime(struct mvd_demo *demo)
 {
 	int player;
 	float entertime;
-	
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_updateentertime.\n");
+
 	player = MVD_MSG_ReadByte(demo);
 	entertime = MVD_MSG_ReadFloat(demo);
 
@@ -997,6 +1043,8 @@ static void MVD_HM_svc_updateuserinfo(struct mvd_demo *demo)
 {
 	int user, userid;
 	char *userinfo;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_updateuserinfo.\n");
 
 	user = MVD_MSG_ReadByte(demo);
 	userid = MVD_MSG_ReadLong(demo);
@@ -1010,6 +1058,8 @@ static void MVD_HM_svc_updateuserinfo(struct mvd_demo *demo)
 
 static void MVD_HM_svc_lightstyle(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_lightstyle.\n");
+
 	MVD_MSG_ReadByte(demo);
 	MVD_MSG_ReadString(demo);
 	return;
@@ -1017,6 +1067,7 @@ static void MVD_HM_svc_lightstyle(struct mvd_demo *demo)
 
 static void MVD_HM_svc_bad(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_bad.\n");
 	return;
 }
 
@@ -1025,8 +1076,17 @@ static void MVD_HM_svc_serverinfo(struct mvd_demo *demo)
 	char *key, *value, *s;
 	int delete_value = 1;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_serverinfo.\n");
+
 	key = strdup(MVD_MSG_ReadString(demo));
 	value = strdup(MVD_MSG_ReadString(demo));
+
+	if (!key || !value)
+	{
+		MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_serverinfo %p %p.", key, value);
+		demo->current_message_bad_read = 1;
+		return;
+	}
 
 	if (strcmp(key, "map") == 0)
 	{
@@ -1085,6 +1145,8 @@ static void MVD_HM_svc_packetentities(struct mvd_demo *demo)
 	int bits;
 	int i;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_packetentities.\n");
+
 	while (1)
 	{
 		word = MVD_MSG_ReadShort(demo);
@@ -1139,6 +1201,8 @@ static void MVD_HM_svc_updatestatlong(struct mvd_demo *demo)
 {
 	int stat, value;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_updatestatlong.\n");
+
 	stat = MVD_MSG_ReadByte(demo);
 	value = MVD_MSG_ReadLong(demo);
 	PF_Set_Stats(demo, stat, value);
@@ -1148,6 +1212,8 @@ static void MVD_HM_svc_updatestatlong(struct mvd_demo *demo)
 static void MVD_HM_svc_updatestat(struct mvd_demo *demo)
 {
 	int stat, value;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_updatestat.\n");
 
 	stat = MVD_MSG_ReadByte(demo);
 	value = MVD_MSG_ReadByte(demo);
@@ -1160,6 +1226,8 @@ static void MVD_HM_svc_deltapacketentities(struct mvd_demo *demo)
 
 	int word, bits, i;
 	byte from;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_deltapacketentities.\n");
 
 	from = MVD_MSG_ReadByte(demo);
 
@@ -1223,6 +1291,8 @@ static void MVD_HM_svc_sound(struct mvd_demo *demo)
 	int sound;
 	vec3_t origin;
 
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_sound.\n");
+
 	channel = MVD_MSG_ReadShort(demo);
 
 	if (channel & SND_VOLUME)
@@ -1238,12 +1308,15 @@ static void MVD_HM_svc_sound(struct mvd_demo *demo)
 
 	if (FLAG_CHECK(demo->flags, MPF_GATHER_STATS))
 		Event_Add_Sound(demo, origin, sound);
+
 	return;
 }
 
 static void MVD_HM_svc_temp_entity(struct mvd_demo *demo)
 {
 	int type;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_temp_entity.\n");
 
 	type = MVD_MSG_ReadByte(demo);
 
@@ -1266,6 +1339,8 @@ static void MVD_HM_svc_temp_entity(struct mvd_demo *demo)
 
 static void MVD_HM_svc_setangle(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_setangle.\n");
+
 	MVD_MSG_ReadByte(demo);
 	MVD_MSG_ReadAngle(demo);
 	MVD_MSG_ReadAngle(demo);
@@ -1275,6 +1350,8 @@ static void MVD_HM_svc_setangle(struct mvd_demo *demo)
 
 static void MVD_HM_svc_setinfo(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_setinfo.\n");
+
 	MVD_MSG_ReadByte(demo);	// num
 	MVD_MSG_ReadString(demo);	// key
 	MVD_MSG_ReadString(demo);	// value
@@ -1283,22 +1360,27 @@ static void MVD_HM_svc_setinfo(struct mvd_demo *demo)
 
 static void MVD_HM_svc_muzzleflash(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_muzzleflash.\n");
 	MVD_MSG_ReadShort(demo);
 	return;
 }
 
 static void MVD_HM_svc_smallkick(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_smallkick.\n");
 	return;
 }
 
 static void MVD_HM_svc_bigkick(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_bigkick.\n");
 	return;
 }
 
 static void MVD_HM_svc_intermission(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_intermission.\n");
+
 	MVD_MSG_ReadCoord(demo);
 	MVD_MSG_ReadCoord(demo);
 	MVD_MSG_ReadCoord(demo);
@@ -1310,12 +1392,16 @@ static void MVD_HM_svc_intermission(struct mvd_demo *demo)
 
 static void MVD_HM_svc_chokecount(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_chokecount.\n");
+
 	MVD_MSG_ReadByte(demo);
 	return;
 }
 
 static void MVD_HM_svc_spawnstatic(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_spawnstatic.\n");
+
 	MVD_MSG_ReadByte(demo);
 	MVD_MSG_ReadByte(demo);
 	MVD_MSG_ReadByte(demo);
@@ -1331,11 +1417,13 @@ static void MVD_HM_svc_spawnstatic(struct mvd_demo *demo)
 
 static void MVD_HM_svc_foundsecret(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_foundsecret.\n");
 	return;
 }
 
 static void MVD_HM_svc_maxspeed(struct mvd_demo *demo)
 {
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_svc_maxspeed.\n");
 	MVD_MSG_ReadFloat(demo);
 	return;
 }
@@ -1343,6 +1431,8 @@ static void MVD_HM_svc_maxspeed(struct mvd_demo *demo)
 static void MVD_HM_svc_nails2(struct mvd_demo *demo)
 {
 	int i, x;
+
+	MVD_DebugPrint(demo, "DEBUG --- MVD_HM_nails2.\n");
 
 	i = MVD_MSG_ReadByte(demo);
 
@@ -1365,10 +1455,12 @@ static int MVD_ParseData(struct mvd_demo *demo)
 {
 	int cmd;
 
+	MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ParseData: start.\n", demo->frame);
 	while (1)
 	{
 		if (demo->current_message_bad_read)
 		{
+			MVD_DebugPrint(demo, "DEBUG --- %9.9d --- MVD_ParseData: bad_read.\n", demo->frame);
 			return 1;
 		}
 
@@ -1379,10 +1471,10 @@ static int MVD_ParseData(struct mvd_demo *demo)
 			break;
 		}
 
-
 		switch (cmd)
 		{
 			default:
+				MVD_DebugPrint(demo, "DEBUG --- MVD_ParseData: default '%i'.\n", cmd);
 				return 1;
 
 				MSG_CASE(svc_nop);
@@ -1554,18 +1646,17 @@ int MVD_Step(struct mvd_demo *demo)
 		demo->players[i].flags = 0;
 	}
 
-    if (FLAG_CHECK(demo->flags, MPF_CLEAN_FRAGS_AFTER_FRAME))
-    {
-        fi = demo->frags_start;
-        while (fi)
-        {
-            fio = fi->next;
-            free(fi);
-            fi = fio;
-        }
-
-        demo->frags_start = demo->frags_end = NULL;
-    }
+	if (FLAG_CHECK(demo->flags, MPF_CLEAN_FRAGS_AFTER_FRAME))
+	{
+		fi = demo->frags_start;
+		while (fi)
+		{
+			fio = fi->next;
+			free(fi);
+			fi = fio;
+		}
+		demo->frags_start = demo->frags_end = NULL;
+	}
 
 	ret_val = MVD_ReadFrame(demo);
 
@@ -1581,8 +1672,9 @@ int MVD_Step(struct mvd_demo *demo)
 
 			return 1;
 		}
-        if (FLAG_CHECK(demo->flags, MPF_GATHER_STATS))
-            Stats_Gather(demo);
+
+		if (FLAG_CHECK(demo->flags, MPF_GATHER_STATS))
+			Stats_Gather(demo);
 	}
 	else
 	{
