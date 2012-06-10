@@ -73,7 +73,6 @@ int main(int argc, char *argv[])
 	printf("end %i\n", i);
 	printf("frame %i\n", demo->frame);
 
-	exit(1);
 	for (i=0; i<32; i++)
 	{
 		if (demo->players[i].name == NULL)
