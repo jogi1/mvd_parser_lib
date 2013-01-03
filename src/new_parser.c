@@ -1181,14 +1181,14 @@ static void MVD_HM_svc_packetentities(struct mvd_demo *demo)
 			MVD_MSG_ReadByte(demo);
 		if (bits & U_ORIGIN1)
 			MVD_MSG_ReadCoord(demo);
-		if (bits & U_ORIGIN2)
-			MVD_MSG_ReadCoord(demo);
-		if (bits & U_ORIGIN3)
-			MVD_MSG_ReadCoord(demo);
 		if (bits & U_ANGLE1)
 			MVD_MSG_ReadAngle(demo);
+		if (bits & U_ORIGIN2)
+			MVD_MSG_ReadCoord(demo);
 		if (bits & U_ANGLE2)
 			MVD_MSG_ReadAngle(demo);
+		if (bits & U_ORIGIN3)
+			MVD_MSG_ReadCoord(demo);
 		if (bits & U_ANGLE3)
 			MVD_MSG_ReadAngle(demo);
 	}
