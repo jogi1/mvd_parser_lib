@@ -47,7 +47,7 @@ char *Get_Userinfo_Value_By_Key(char *key, char *userinfo)
 		_size++;
 		index++;
 	}
-#if 1
+#if !_WIN32
 	return strndup(index_org, _size);
 #else
 	r = calloc(_size+1, sizeof(char));
