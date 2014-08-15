@@ -19,7 +19,6 @@ BIN_RELEASE_DIR=bin
 ODIR=
 
 OBJS= \
-	  msg_functions.o \
 	  new_parser.o \
 	  parse_functions.o \
 	  readablechars.o \
